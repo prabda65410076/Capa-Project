@@ -1,0 +1,129 @@
+<!--HEAD-->
+<title>CAPA Recalc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+Thai:wght@400;600&amp;display=swap">
+<style>
+/*STYLE*/
+</style>
+<!--BODY-->
+<header class="bar">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"></span>
+    <div>
+      <h1>CAPA Recalc</h1>
+      <p>คำนวณกำลังการผลิตจากไฟล์ Excel ในเบราว์เซอร์ แทน macro CAPA_Recalc</p>
+    </div>
+  </div>
+  <p class="privacy">ไฟล์ถูกประมวลผลในเครื่องนี้เท่านั้น ไม่มีการส่งข้อมูลขึ้นอินเทอร์เน็ต</p>
+</header>
+
+<main class="layout">
+  <div class="sample-banner" id="sample-banner" hidden>
+    ตอนนี้แสดง<strong> ไฟล์ตัวอย่าง </strong>ที่เป็นข้อมูลสมมติ ลากไฟล์ CAPA ของคุณมาวางเพื่อคำนวณจริง
+  </div>
+  <aside class="run" aria-label="ขั้นตอน">
+    <section class="step" id="step-file">
+      <h2><span class="n">1</span>เปิดไฟล์</h2>
+      <label class="drop" id="drop" for="file-input">
+        <strong>ลากไฟล์ .xlsm / .xlsx มาวางที่นี่</strong>
+        <span>หรือกดเพื่อเลือกไฟล์</span>
+        <input id="file-input" type="file" accept=".xlsm,.xlsx">
+      </label>
+      <div class="fileinfo" id="fileinfo" hidden></div>
+      <p class="hint">ใช้ไฟล์ CAPA ที่รัน CAPA_Setup (macro v13) แล้ว เว็บคำนวณเหมือนกดปุ่ม Recalc CAPA ใน Excel</p>
+    </section>
+
+    <section class="step" id="step-calc">
+      <h2><span class="n">2</span>คำนวณ</h2>
+      <div class="progress" id="progress" hidden>
+        <div class="track"><div class="fill" id="progress-fill"></div></div>
+        <p id="progress-text"></p>
+      </div>
+      <div id="calc-status"><p class="hint">เริ่มคำนวณทันทีหลังเปิดไฟล์</p></div>
+      <div class="error" id="error" role="alert" hidden></div>
+    </section>
+
+    <section class="step" id="step-save">
+      <h2><span class="n">3</span>บันทึกไฟล์ที่คำนวณแล้ว</h2>
+      <label class="check" for="opt-detail">
+        <input type="checkbox" id="opt-detail">
+        <span>เขียนค่ารายชิ้นงานของชีต 1-2 (CH:AGS) ลงไฟล์ด้วย</span>
+      </label>
+      <p class="hint" id="detail-hint">ค่ารายชิ้นงานคือ ST × coefficient × Plan ของทุกรายการ ทุกกระบวนการ ทุกเดือน (หลายล้านเซลล์) ไม่มีสูตรใดใช้ค่านี้ นอกจากคอลัมน์ Plan ซึ่งเขียนเสมอ ดูค่าเหล่านี้ได้ในแท็บดูชีต ถ้าไม่เลือก ไฟล์จะเล็กลงหลายเท่าและบันทึกเร็วกว่ามาก ส่วนผลของทุกชีตอื่นเหมือนกัน</p>
+      <button type="button" class="primary" id="btn-save" disabled>ดาวน์โหลดไฟล์</button>
+      <p class="hint" id="save-status" aria-live="polite"></p>
+    </section>
+  </aside>
+
+  <section class="ledger" aria-label="ผลการคำนวณ">
+    <dl class="figures" id="figures">
+      <div><dt>รายการในชีต 1-2</dt><dd id="fig-items">–</dd></div>
+      <div><dt>กลุ่ม OD ใน ST_SUM</dt><dd id="fig-groups">–</dd></div>
+      <div><dt>เซลล์สูตรที่คำนวณ</dt><dd id="fig-cells">–</dd></div>
+      <div><dt>เซลล์ที่ค่าเปลี่ยน</dt><dd id="fig-changed">–</dd></div>
+      <div><dt>เวลาคำนวณ</dt><dd id="fig-time">–</dd></div>
+    </dl>
+
+    <nav class="tabs" role="tablist" aria-label="ผลลัพธ์">
+      <button type="button" role="tab" id="tabbtn-work" aria-controls="tab-work" aria-selected="true">ชั่วโมงงานต่อกระบวนการ</button>
+      <button type="button" role="tab" id="tabbtn-sheet" aria-controls="tab-sheet" aria-selected="false">ดูชีต</button>
+      <button type="button" role="tab" id="tabbtn-changes" aria-controls="tab-changes" aria-selected="false">เซลล์ที่เปลี่ยน<span class="count" id="count-changes"></span></button>
+      <button type="button" role="tab" id="tabbtn-notes" aria-controls="tab-notes" aria-selected="false">คำเตือน<span class="count" id="count-notes"></span></button>
+    </nav>
+
+    <div class="panel" id="tab-work" role="tabpanel" aria-labelledby="tabbtn-work">
+      <div class="panel-head">
+        <div>
+          <h3>ชั่วโมงงานต่อกระบวนการ</h3>
+          <p>ST × coefficient × Plan ÷ 3,600 ของทุกรายการในชีต 1-2 รวมทุก spec (ชั่วโมง) เส้นใต้คือเดือนที่งานมากที่สุด</p>
+        </div>
+        <label class="check" for="opt-allproc"><input type="checkbox" id="opt-allproc"><span>แสดงกระบวนการที่ไม่มีงาน</span></label>
+      </div>
+      <div id="work"><p class="empty">ผลจะแสดงที่นี่หลังคำนวณ</p></div>
+    </div>
+
+    <div class="panel" id="tab-sheet" role="tabpanel" aria-labelledby="tabbtn-sheet" hidden>
+      <div class="viewer-bar">
+        <label for="sheet-select">ชีต <select id="sheet-select"></select></label>
+        <form id="goto-form">
+          <input id="goto-input" placeholder="ไปที่เซลล์ เช่น BU7" aria-label="ไปที่เซลล์" autocomplete="off">
+          <button type="submit" class="ghost">ไป</button>
+        </form>
+        <ul class="legend">
+          <li><i class="sw calc"></i>คำนวณโดยเว็บ</li>
+          <li><i class="sw chg"></i>ค่าเปลี่ยนจากไฟล์เดิม</li>
+          <li><i class="sw keep"></i>คำนวณไม่ได้ ใช้ค่าเดิม</li>
+        </ul>
+      </div>
+      <div class="grid" id="grid">
+        <canvas id="grid-canvas"></canvas>
+        <div class="grid-scroll" id="grid-scroll" tabindex="0" aria-label="ตารางของชีต ใช้ลูกศรเพื่อเลื่อน"><div id="grid-spacer"></div></div>
+      </div>
+      <div class="cellinfo" id="cellinfo"><p class="hint">คลิกเซลล์เพื่อดูสูตร ที่มาของค่า และค่าเดิมในไฟล์</p></div>
+    </div>
+
+    <div class="panel" id="tab-changes" role="tabpanel" aria-labelledby="tabbtn-changes" hidden>
+      <div class="panel-head">
+        <div>
+          <h3>เซลล์ที่ค่าเปลี่ยนจากไฟล์เดิม</h3>
+          <p>ถ้าไฟล์เพิ่งคำนวณด้วย Excel หรือ macro และยังไม่ได้แก้ข้อมูล ควรเป็น 0 (ตัวเลขต่างกันไม่เกิน 1 ใน 1,000 ล้านนับว่าเท่ากัน) คลิกแถวเพื่อดูในชีต</p>
+        </div>
+      </div>
+      <div id="changes" class="changes"><p class="empty">ยังไม่ได้คำนวณ</p></div>
+    </div>
+
+    <div class="panel" id="tab-notes" role="tabpanel" aria-labelledby="tabbtn-notes" hidden>
+      <div id="notes" class="changes"><p class="empty">ยังไม่ได้คำนวณ</p></div>
+    </div>
+  </section>
+</main>
+<p class="foot">คำนวณตามกฎเดียวกับ macro modCapaCalc / modCapaEngine (v13): ST × coefficient × Plan ของชีต 1-2, ST_SUM, PART METHOD (FMCNC1 / FMCNC2 / HAND) และสูตรทุกชีตที่ใช้ IF IFERROR SUM COUNT SUMIF SUMIFS COUNTIF COUNTIFS VLOOKUP INT MID NA TRUE FALSE</p>
+
+<script type="application/octet-stream" id="capa-sample">/*SAMPLE*/</script>
+<script id="capa-core">
+/*CORE*/
+</script>
+<script>
+/*APP*/
+</script>

@@ -1,0 +1,5 @@
+test/fixtures/out/
+test/fixtures/lo_out/
+test/fixtures/B_formulas.xlsx
+*.part
+node_modules/

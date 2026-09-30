@@ -1,0 +1,12 @@
+{
+  "name": "capa-recalc-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CAPA Recalc in the browser: a port of the VBA macros modCapaCalc and modCapaEngine",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test/run-tests.js",
+    "test:e2e": "node test/e2e.js",
+    "fixtures": "python3 test/make_fixtures.py"
+  }
+}
